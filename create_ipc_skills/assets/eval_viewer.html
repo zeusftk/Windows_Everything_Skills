@@ -1,0 +1,334 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>IPC Skill Eval Viewer</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background-color: #f5f5f5;
+            color: #333;
+            line-height: 1.6;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+
+        .header h1 {
+            font-size: 24px;
+            margin-bottom: 10px;
+        }
+
+        .header .summary {
+            display: flex;
+            gap: 20px;
+            flex-wrap: wrap;
+        }
+
+        .summary-item {
+            background: rgba(255, 255, 255, 0.2);
+            padding: 10px 20px;
+            border-radius: 6px;
+        }
+
+        .summary-item .label {
+            font-size: 12px;
+            opacity: 0.8;
+        }
+
+        .summary-item .value {
+            font-size: 20px;
+            font-weight: bold;
+        }
+
+        .eval-card {
+            background: white;
+            border-radius: 8px;
+            margin-bottom: 15px;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+        }
+
+        .eval-card.passed {
+            border-left: 4px solid #4caf50;
+        }
+
+        .eval-card.failed {
+            border-left: 4px solid #f44336;
+        }
+
+        .eval-header {
+            padding: 15px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            cursor: pointer;
+            background: #fafafa;
+        }
+
+        .eval-header:hover {
+            background: #f0f0f0;
+        }
+
+        .eval-id {
+            font-weight: bold;
+            color: #666;
+        }
+
+        .status-badge {
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: bold;
+            text-transform: uppercase;
+        }
+
+        .status-badge.passed {
+            background: #e8f5e9;
+            color: #4caf50;
+        }
+
+        .status-badge.failed {
+            background: #ffebee;
+            color: #f44336;
+        }
+
+        .eval-details {
+            padding: 20px;
+            display: none;
+        }
+
+        .eval-card.expanded .eval-details {
+            display: block;
+        }
+
+        .detail-row {
+            margin-bottom: 15px;
+        }
+
+        .detail-row .label {
+            font-weight: bold;
+            color: #555;
+            margin-bottom: 5px;
+        }
+
+        .detail-row .value {
+            background: #f5f5f5;
+            padding: 10px;
+            border-radius: 4px;
+            font-family: 'Courier New', monospace;
+            white-space: pre-wrap;
+            word-break: break-all;
+        }
+
+        .error-message {
+            background: #ffebee;
+            color: #c62828;
+            padding: 10px;
+            border-radius: 4px;
+            margin-top: 10px;
+        }
+
+        .filter-bar {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+
+        .filter-btn {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            background: white;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+            transition: all 0.2s;
+        }
+
+        .filter-btn:hover {
+            background: #e0e0e0;
+        }
+
+        .filter-btn.active {
+            background: #667eea;
+            color: white;
+        }
+
+        .no-data {
+            text-align: center;
+            padding: 50px;
+            color: #999;
+            font-size: 18px;
+        }
+
+        .timing-info {
+            font-size: 12px;
+            color: #999;
+            margin-top: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🧪 IPC Skill Eval Viewer</h1>
+            <div class="summary" id="summary">
+                <div class="summary-item">
+                    <div class="label">Skill</div>
+                    <div class="value" id="skill-name">-</div>
+                </div>
+                <div class="summary-item">
+                    <div class="label">总数</div>
+                    <div class="value" id="total-count">0</div>
+                </div>
+                <div class="summary-item">
+                    <div class="label">通过</div>
+                    <div class="value" id="passed-count">0</div>
+                </div>
+                <div class="summary-item">
+                    <div class="label">失败</div>
+                    <div class="value" id="failed-count">0</div>
+                </div>
+                <div class="summary-item">
+                    <div class="label">通过率</div>
+                    <div class="value" id="pass-rate">0%</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="filter-bar">
+            <button class="filter-btn active" onclick="filterEvals('all')">全部</button>
+            <button class="filter-btn" onclick="filterEvals('passed')">通过</button>
+            <button class="filter-btn" onclick="filterEvals('failed')">失败</button>
+        </div>
+
+        <div id="evals-container"></div>
+
+        <div class="no-data" id="no-data" style="display: none;">
+            没有评估数据
+        </div>
+    </div>
+
+    <script>
+        let evalData = null;
+        let currentFilter = 'all';
+
+        function loadReport() {
+            const reportJson = {{ report_json }};
+            evalData = reportJson;
+            renderSummary();
+            renderEvals();
+        }
+
+        function renderSummary() {
+            if (!evalData || !evalData.summary) return;
+
+            const summary = evalData.summary;
+            document.getElementById('skill-name').textContent = evalData.skill_name || '-';
+            document.getElementById('total-count').textContent = summary.total;
+            document.getElementById('passed-count').textContent = summary.passed;
+            document.getElementById('failed-count').textContent = summary.failed;
+            document.getElementById('pass-rate').textContent = (summary.pass_rate * 100).toFixed(1) + '%';
+        }
+
+        function renderEvals() {
+            const container = document.getElementById('evals-container');
+            const noData = document.getElementById('no-data');
+            container.innerHTML = '';
+
+            if (!evalData || !evalData.results || evalData.results.length === 0) {
+                noData.style.display = 'block';
+                return;
+            }
+
+            noData.style.display = 'none';
+
+            const filteredResults = evalData.results.filter(result => {
+                if (currentFilter === 'all') return true;
+                return result.success === (currentFilter === 'passed');
+            });
+
+            filteredResults.forEach(result => {
+                const card = document.createElement('div');
+                card.className = `eval-card ${result.success ? 'passed' : 'failed'}`;
+                card.onclick = () => card.classList.toggle('expanded');
+
+                let errorHtml = '';
+                if (result.error) {
+                    errorHtml = `<div class="error-message">错误: ${result.error}</div>`;
+                }
+
+                let apiCallsHtml = '';
+                if (result.api_calls && result.api_calls.length > 0) {
+                    apiCallsHtml = '<div class="detail-row"><div class="label">API 调用</div><div class="value">' +
+                        JSON.stringify(result.api_calls, null, 2) + '</div></div>';
+                }
+
+                let actualOutputHtml = '';
+                if (result.actual_output) {
+                    actualOutputHtml = '<div class="detail-row"><div class="label">实际输出</div><div class="value">' +
+                        JSON.stringify(result.actual_output, null, 2) + '</div></div>';
+                }
+
+                card.innerHTML = `
+                    <div class="eval-header">
+                        <div>
+                            <span class="eval-id">#${result.eval_id}</span>
+                            <span style="margin-left: 10px;">${result.prompt ? result.prompt.substring(0, 80) : ''}${result.prompt && result.prompt.length > 80 ? '...' : ''}</span>
+                        </div>
+                        <span class="status-badge ${result.success ? 'passed' : 'failed'}">${result.success ? '通过' : '失败'}</span>
+                    </div>
+                    <div class="eval-details">
+                        <div class="detail-row">
+                            <div class="label">提示</div>
+                            <div class="value">${result.prompt || '-'}</div>
+                        </div>
+                        <div class="detail-row">
+                            <div class="label">期望输出</div>
+                            <div class="value">${result.expected_output || '-'}</div>
+                        </div>
+                        ${actualOutputHtml}
+                        ${apiCallsHtml}
+                        ${errorHtml}
+                        <div class="timing-info">耗时: ${result.duration_ms}ms</div>
+                    </div>
+                `;
+
+                container.appendChild(card);
+            });
+        }
+
+        function filterEvals(filter) {
+            currentFilter = filter;
+            document.querySelectorAll('.filter-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            event.target.classList.add('active');
+            renderEvals();
+        }
+
+        document.addEventListener('DOMContentLoaded', loadReport);
+    </script>
+</body>
+</html>
