@@ -33,14 +33,6 @@ IPC 自动化技能集，为 AI Agent 提供 Windows 系统控制能力。
 - "发送微信消息给张三"
 - "识别截图中的文字"
 
-###
-
-```python
-from clawbot.skills.create_ipc_skills.scripts.ipc_client import IPCClient
-
-with IPCClient() as client:
-    response = client.send('desktop_mouse_click', {'x': 100, 'y': 200})
-```
 
 ## 项目结构
 
